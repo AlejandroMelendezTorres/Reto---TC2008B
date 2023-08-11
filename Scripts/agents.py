@@ -26,10 +26,10 @@ def get_grid(model):
     for cell in model.grid.coord_iter():
       cell_content, (x, y) = cell
       for obj in cell_content:
-        if isinstance(obj, RobotLimpieza):
-          grid[x][y] = 2
-        elif isinstance(obj, Cell):
-          grid[x][y] = obj.estado
+        if isinstance(obj, Car):
+          grid[x][y] = 0.4
+        elif isinstance(obj, TrafficLight):
+          grid[x][y] = 0.1 + obj.state * .1
     return grid
 
 class Car(Agent):
@@ -44,16 +44,17 @@ class Car(Agent):
         self.trigger = False
     
     def step(self):
+
         if (not self.trigger):
             if (self.traffic_light.state == 2):
                 self.next_pos = (self.pos[0] + self.dir[0], self.pos[1] + self.dir[1])
             
-            if (self.next_pos[0] == self.traffic_light[0] or self.next_pos[1] == self.traffic_light[1]):
+            if (self.next_pos[0] == self.traffic_light.pos[0] or self.next_pos[1] == self.traffic_light.pos[1]):
                 self.trigger = True
         else:
             # if we have arrived at the end of the grid remove the agent
             if (self.pos == self.dest):
-                self.model.grid.remove_agent(self)
+                #self.model.grid.remove_agent(self)
                 return
             else:
                 if (self.pos[0] == self.dest[0]):
@@ -71,8 +72,8 @@ class Car(Agent):
         
     
     def advance(self):
-        self.pos = self.next_pos
-        self.model.grid.move_agent(self, self.pos)
+        #self.pos = self.next_pos
+        self.model.grid.move_agent(self, self.next_pos)
             
 
 class TrafficLight(Agent):
@@ -85,41 +86,72 @@ class TrafficLight(Agent):
         self.type = "TrafficLight"
     
     def step(self):
-        if state != self.next_state:
-            state = self.next_state
+        if self.state != self.next_state:
+            self.state = self.next_state
     
     def advance(self):
         pass
 
 class Cross(Model):
     def __init__(self, width, height, tl):
-        self.grid = MultiGrid(width, height, True)
+        self.grid = MultiGrid(width, height, False)
         self.schedule = SimultaneousActivation(self)
         self.running = True
         self.trafic_lights = tl
-        self.trafic_lights_list = []
+        self.yoyo = []
 
         contador = 1
 
-
         for test in tl:
 
-            t = TrafficLight(contador, self, test, 0)
+            t = TrafficLight(contador, self, test, 2)
             contador += 1
             self.grid.place_agent(t, (test[0], test[1]))
             self.schedule.add(t)
-            self.trafic_lights_list.append(t)
+            self.yoyo.append(t)
+
+        car = Car(0, self, (12,0), (12,23), (0,1), self.yoyo[2])
+        self.grid.place_agent(car, (12,4))
+        self.schedule.add(car)
+        
+        self.datacollector = DataCollector(
+                model_reporters={"Grid": get_grid},  # A function to call
+                agent_reporters={"Type": "type"},  # An agent attribute
+        )
             
     def step(self):
         self.schedule.step()
+        self.datacollector.collect(self)
 
 
     
 if __name__ == "__main__":
     widht =23
-    height = 23
+    height = 23  
+    tiempo = 0.5
 
-    tl = [(11,10),(13,11),(10,12),(12,13)]
+    tl = [(10,11),(11,13),(12,10),(13,12)]
     model = Cross(widht, height, tl)
-    #model.step()
+    
+    contador = 0
+    while (contador < 100):
+        model.step()
+        contador += 1
+    
+    all_grid = model.datacollector.get_model_vars_dataframe()
+
+    fig, axs = plt.subplots(figsize=(7,7))
+    axs.set_xticks([])
+    axs.set_yticks([])
+    patch = plt.imshow(all_grid.iloc[0][0], cmap=plt.cm.binary)
+
+    def animate(i):
+        patch.set_data(all_grid.iloc[i][0])
+
+    anim = animation.FuncAnimation(fig, animate, frames=len(all_grid))
+
+    # save animation using pillow writer
+
+    writergif = animation.PillowWriter(fps=10)
+    anim.save('animation.gif', writer=writergif)
 
