@@ -25,7 +25,7 @@
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Se utilizara pip para instalar las librerias  `pip install mesa`
 
 ### Agents
-- Car\
+- Car
     
         asdasdasd
 
