@@ -75,8 +75,8 @@
 
 - Car -> Traffic Light
    
-        El agente de carro le pregunta al semaforo si puede pasar, si el semáforo esta en verde el carro puede
-        pasar, si el semáforo está en rojo el carro se detiene.
+        El agente de carro le pregunta al semaforo si puede pasar, si el semáforo esta en
+        verde el carro puede pasar, si el semáforo está en rojo el carro se detiene.
 
 - Traffic Light -> Car
        
