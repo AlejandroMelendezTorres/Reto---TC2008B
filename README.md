@@ -12,9 +12,10 @@
   
 - Francisco Nicolas Jervis Hidalgo - A00835131
   
-        Personalmente mi interes se encuentra en el area de la inteligencia artificial y machine learning,
-        por lo que me gustaria aprender en el bloque a utilizar las librerias de python como mesa para poder
-        crear agentes y poder aplicarlos en el futuro a proyectos. Para lograr esto, me comprometo a dedicarle
+        Personalmente mi interes se encuentra en el area de la inteligencia artificial y
+        machine learning, por lo que me gustaria aprender en el bloque a utilizar las
+        librerias de python como mesa para poder crear agentes y poder aplicarlos en
+        el futuro a proyectos. Para lograr esto, me comprometo a dedicarle
         el tiempo necesario a la materia y a las actividades que se nos asignen.
 
 - Jesús Alonso Galaz Reyes - A00832930
@@ -79,8 +80,9 @@
 
 - Traffic Light -> Car
        
-        El agente de semáforo le indica al carro si puede pasar o no, si el semaforo esta en verde el
-        carro puede pasar, si el semaforo esta en rojo el carro se detiene.
+        El agente de semáforo le indica al carro si puede pasar o no, si el semaforo
+        esta en verde el carro puede pasar, si el semaforo esta en rojo el carro
+        se detiene.
 
 - Controller -> Traffic Light
            
