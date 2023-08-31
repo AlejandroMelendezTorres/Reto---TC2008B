@@ -138,7 +138,7 @@ class Car(Agent):
             self.model.grid.move_agent(self, self.next_pos)
             self.pos = self.next_pos
         
-            
+                        
 class TrafficLight(Agent):
     def __init__(self, unique_id, model, pos, state, area):
         # state: 0 = red, 1 = yellow, 2 = green
@@ -149,6 +149,7 @@ class TrafficLight(Agent):
         self.type = "TrafficLight"
         self.area = area
         self.num_carros = 0
+        self.contador = 0
     
     def step(self):
         self.num_carros = 0
@@ -163,7 +164,10 @@ class TrafficLight(Agent):
             self.state = self.next_state
 
 class lightsController(Agent):
-    # NOT SMART CONTROLLER
+    # 0 rojo
+    # 1 amarillo
+    # 2 verde
+    # [0]izq ; [2] der ; [1] top ; [3] down
     def __init__(self, unique_id, model, pos, tl):
         super().__init__(unique_id, model)
         self.pos = pos
@@ -171,27 +175,52 @@ class lightsController(Agent):
         self.type = "lightsController"
         self.contador = 0
 
-        self.traffic_lights[0].next_state = 2
-        self.traffic_lights[2].next_state = 2
-    
     def step(self):
-        if self.contador == 15:
-            self.traffic_lights[0].next_state = 1
-            self.traffic_lights[2].next_state = 1
-        if self.contador == 20:
-            self.traffic_lights[0].next_state = 0
-            self.traffic_lights[2].next_state = 0
-            self.traffic_lights[1].next_state = 2
+        all_have_cars = all(tls.num_carros > 0 for tls in self.traffic_lights)
+
+        for tls in self.traffic_lights:
+            if all_have_cars:
+                self.traffic_lights[0].next_state = 2
+            else:
+                if tls.num_carros > 0:
+                    tls.next_state = 2  # Set to green if cars are waiting
+                    tls.contador = 0
+                else:
+                    tls.next_state = 1
+                    tls.contador += 1
+                    if tls.contador > 5:
+                        tls.next_state = 0
+                
+        if self.traffic_lights[0].next_state == 2:
+            self.traffic_lights[2].next_state = 2
+        if self.traffic_lights[2].next_state == 2:
+            self.traffic_lights[0].next_state = 2
+
+        if self.traffic_lights[1].next_state == 2:
             self.traffic_lights[3].next_state = 2
-        if self.contador == 35:
-            self.traffic_lights[1].next_state = 1
-            self.traffic_lights[3].next_state = 1
-        if self.contador == 40:
+        if self.traffic_lights[3].next_state == 2:
+            self.traffic_lights[1].next_state = 2
+
+
+        if self.traffic_lights[0].next_state == 1:
+            self.traffic_lights[2].next_state = 1
             self.traffic_lights[1].next_state = 0
             self.traffic_lights[3].next_state = 0
-            self.traffic_lights[0].next_state = 2
-            self.traffic_lights[2].next_state = 2
-            self.contador = 0
+        if self.traffic_lights[2].next_state == 1:
+            self.traffic_lights[0].next_state = 1
+            self.traffic_lights[1].next_state = 0
+            self.traffic_lights[3].next_state = 0
 
+        if self.traffic_lights[1].next_state == 1:
+            self.traffic_lights[3].next_state = 1
+            self.traffic_lights[0].next_state = 0
+            self.traffic_lights[2].next_state = 0
+        if self.traffic_lights[3].next_state == 1:
+            self.traffic_lights[1].next_state = 1
+            self.traffic_lights[0].next_state = 0
+            self.traffic_lights[2].next_state = 0
+
+
+    
     def advance(self):
-        self.contador += 1
+       self.contador += 1
