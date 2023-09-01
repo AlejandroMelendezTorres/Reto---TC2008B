@@ -1,7 +1,3 @@
-# TC2008B. Sistemas Multiagentes y Gráficas Computacionales
-# Python server to interact with Unity
-# Sergio. Julio 2021
-
 from http.server import BaseHTTPRequestHandler, HTTPServer
 import logging
 import json
@@ -33,19 +29,20 @@ for i in range (1,201):
     pos=AgentsDF.loc[i]["Position"].tolist()
     type=AgentsDF.loc[i]["Type"].tolist()
     state=AgentsDF.loc[i]["State"].tolist()
+    ids=AgentsDF.loc[i].index.tolist()
     for j in range(len(pos)):
         x,y=pos[j]
         if type[j]=="Car":
-            tempPos.append((float(x),float(y),0.0,0,5))
+            tempPos.append((float(x),float(y),0.0,0,5,ids[j]))
         elif type[j]=="TrafficLight":
             if state[j]==0:
-                tempPos.append((float(x),float(y),0.0,1,0))
+                tempPos.append((float(x),float(y),0.0,1,0,ids[j]))
             elif state[j]==1:
-                tempPos.append((float(x),float(y),0.0,1,1))
+                tempPos.append((float(x),float(y),0.0,1,1,ids[j]))
             elif state[j]==2:
-                tempPos.append((float(x),float(y),0.0,1,2))
-        elif type[j]=="lightsController":
-            tempPos.append((float(x),float(y),0.0,2,5))
+                tempPos.append((float(x),float(y),0.0,1,2,ids[j]))
+        #elif type[j]=="lightsController":
+            #tempPos.append((float(x),float(y),0.0,2,5))
     positions.append(tempPos)
 
 

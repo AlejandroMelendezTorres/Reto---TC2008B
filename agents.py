@@ -178,18 +178,18 @@ class lightsController(Agent):
         self.traffic_lights[2].next_state = 2
     
     def step(self):
-        if self.contador == 15:
+        if self.contador == 5:
             self.traffic_lights[0].next_state = 1
             self.traffic_lights[2].next_state = 1
-        if self.contador == 20:
+        if self.contador == 10:
             self.traffic_lights[0].next_state = 0
             self.traffic_lights[2].next_state = 0
             self.traffic_lights[1].next_state = 2
             self.traffic_lights[3].next_state = 2
-        if self.contador == 35:
+        if self.contador == 15:
             self.traffic_lights[1].next_state = 1
             self.traffic_lights[3].next_state = 1
-        if self.contador == 40:
+        if self.contador == 20:
             self.traffic_lights[1].next_state = 0
             self.traffic_lights[3].next_state = 0
             self.traffic_lights[0].next_state = 2
