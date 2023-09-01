@@ -11,7 +11,7 @@ import pandas as pd
 
 import random
 
-from agents import Car, TrafficLight, lightsController
+#from agents import Car, TrafficLight, lightsController
 
 def get_grid(model):
     grid = np.zeros((model.grid.width, model.grid.height))
@@ -72,7 +72,8 @@ class Cross(Model):
             self.schedule.add(car)
 
         self.datacollector = DataCollector(
-                model_reporters={"Grid": get_grid},  # A function to call
+                model_reporters={"Grid": get_grid},
+                agent_reporters={"Position": "pos","Type": "type","State": "state"} 
         )
             
     def step(self):
@@ -99,6 +100,7 @@ class Car(Agent):
         self.next_dir = next_dir
         self.middle = middle
         self.first = False
+        self.state=None
     
     def move(self):
         next = (self.pos[0] + self.dir[0], self.pos[1] + self.dir[1])
@@ -170,6 +172,7 @@ class lightsController(Agent):
         self.traffic_lights = tl
         self.type = "lightsController"
         self.contador = 0
+        self.state = None
 
         self.traffic_lights[0].next_state = 2
         self.traffic_lights[2].next_state = 2
