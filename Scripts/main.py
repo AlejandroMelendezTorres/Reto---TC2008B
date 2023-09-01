@@ -4,7 +4,12 @@ import matplotlib.animation as animation
 plt.rcParams["animation.html"] = "jshtml"
 matplotlib.rcParams['animation.embed_limit'] = 2**128
 
+import time
+import datetime
+
 from agents import Cross
+
+import os
     
 if __name__ == "__main__":
     # Modificar todo el main (crear un servidor y que cada GET sea un step)
@@ -12,16 +17,18 @@ if __name__ == "__main__":
     height = 24  
     tiempo = 0.5
 
-    cmp = matplotlib.colors.ListedColormap(['white','red', 'yellow', 'green', 'black','blue'])
+    cmp = matplotlib.colors.ListedColormap(['white','red', 'yellow', 'green', 'black','blue', 'gray'])
+    
+    model = Cross(widht, height, (1,100))
+    
+    start_time = time.time()
 
-    tl = [(12,10),(10,11),(11,13),(13,12)]
-    model = Cross(widht, height, tl)
-    
-    contador = 0
-    while (contador < 200):
+    while ((time.time() - start_time) < tiempo):
         model.step()
-        contador += 1
     
+    execution_time = str(datetime.timedelta(seconds=(time.time() - start_time)))
+    print("Tiempo de ejecución: " + execution_time)
+
     all_grid = model.datacollector.get_model_vars_dataframe()
 
     fig, axs = plt.subplots(figsize=(7,7))
@@ -39,5 +46,8 @@ if __name__ == "__main__":
 
     # save animation using pillow writer
 
-    writergif = animation.PillowWriter(fps=5)
+    writergif = animation.PillowWriter(fps=10)
     anim.save('animation.gif', writer=writergif)
+
+    # open and show the animation
+    os.system("animation.gif")
