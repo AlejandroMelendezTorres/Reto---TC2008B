@@ -64,6 +64,3 @@ if __name__ == "__main__":
 
     writergif = animation.PillowWriter(fps=30)
     anim.save('animation.gif', writer=writergif)
-
-    # open and show the animation
-    os.system("animation.gif")
