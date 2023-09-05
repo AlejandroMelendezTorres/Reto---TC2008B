@@ -33,7 +33,7 @@ def get_grid(model):
 
 class Cross(Model):
     # Agregar un metodo para que obtenga la informacion de los agentes (solamante de los carros y los semaforos)
-    def __init__(self, width, height, prob):
+    def __init__(self, width, height, prob, smart):
         self.grid = MultiGrid(width, height, False)
         self.width = width
         self.height = height
@@ -49,6 +49,7 @@ class Cross(Model):
         self.directions = [(0,1),(0,1),(1,0),(1,0),(0,-1),(0,-1),(-1,0),(-1,0)]
         self.lightIndex = [0,0,1,1,2,2,3,3]
         self.density = prob
+        self.numTotalCaros = 0
 
         tempx = [(12, 13),(0, 9), (10, 11), (14, 23)]
         tempy = [(0,9), (10, 11), (14, 23), (12, 13)]
@@ -65,7 +66,7 @@ class Cross(Model):
             self.schedule.add(t)
             self.lights.append(t)
         
-        controller = lightsController(self.contador, self, (23,0), self.lights)
+        controller = lightsController(self.contador, self, (23,0), self.lights, smart)
         self.contador += 1
         self.grid.place_agent(controller, (23,0))
         self.schedule.add(controller)
@@ -85,6 +86,7 @@ class Cross(Model):
                     self.contador += 1
                     self.grid.place_agent(car, self.origin[i])
                     self.schedule.add(car)
+
         self.schedule.step()
         self.datacollector.collect(self)
 
@@ -128,13 +130,13 @@ class Car(Agent):
         if self.pos == self.dest:
             self.model.grid.remove_agent(self)
             self.model.schedule.remove(self)
+            self.model.numTotalCaros += 1
         elif self.pos != self.next_pos:
             if self.next_pos == self.middle:
                 self.dir = self.next_dir
             self.model.grid.move_agent(self, self.next_pos)
             self.pos = self.next_pos
         
-            
 class TrafficLight(Agent):
     def __init__(self, unique_id, model, pos, state, area):
         # state: 0 = red, 1 = yellow, 2 = green
@@ -160,35 +162,99 @@ class TrafficLight(Agent):
 
 class lightsController(Agent):
     # NOT SMART CONTROLLER
-    def __init__(self, unique_id, model, pos, tl):
+    def __init__(self, unique_id, model, pos, tl, smart):
         super().__init__(unique_id, model)
         self.pos = pos
         self.traffic_lights = tl
         self.type = "lightsController"
         self.contador = 0
         self.state = None
+        self.smart = smart
 
-        self.traffic_lights[0].next_state = 2
-        self.traffic_lights[2].next_state = 2
+        if self.smart:
+            self.yellows = False
+            self.area1 = [] # Para los semaforos 0 y 2
+            self.trigger1 = False
+            self.area2 = [] # Para los semaforos 1 y 3
+            self.trigger2 = False
+            num_cariles = 3
+            for i in range(10-num_cariles, 10):
+                self.area1.append((12, i))
+                self.area1.append((13, i))
+
+            for i in range(14, 14+num_cariles):
+                self.area1.append((10, i))
+                self.area1.append((11, i))
+
+            for i in range(10-num_cariles, 10):
+                self.area2.append((i, 10))
+                self.area2.append((i, 11))
+            
+            for i in range(14, 14+num_cariles):
+                self.area2.append((i, 12))
+                self.area2.append((i, 13))
+
+        for light in self.traffic_lights:
+            light.next_state = 0
     
     def step(self):
-        if self.contador == 15:
-            self.traffic_lights[0].next_state = 1
-            self.traffic_lights[2].next_state = 1
-        if self.contador == 20:
-            self.traffic_lights[0].next_state = 0
-            self.traffic_lights[2].next_state = 0
-            self.traffic_lights[1].next_state = 2
-            self.traffic_lights[3].next_state = 2
-        if self.contador == 35:
-            self.traffic_lights[1].next_state = 1
-            self.traffic_lights[3].next_state = 1
-        if self.contador == 40:
-            self.traffic_lights[1].next_state = 0
-            self.traffic_lights[3].next_state = 0
+        if self.smart:
+            num_carros12 = 0
+            num_carros34 = 0
+            for pos in self.area1:
+                cellmates = self.model.grid.get_cell_list_contents(pos)
+                if len(cellmates) > 0:
+                    num_carros12 += 1
+            
+            for pos in self.area2:
+                cellmates = self.model.grid.get_cell_list_contents(pos)
+                if len(cellmates) > 0:
+                    num_carros34 += 1
+
+            if num_carros12 != 0 and num_carros34 ==0 and not self.trigger2 and not self.yellows:
+                self.contador = 0
+                self.trigger2 = True
+            elif num_carros12 == 0 and num_carros34 != 0 and not self.trigger1 and not self.yellows:
+                self.contador == 28
+                self.trigger1 = True
+            
+            if self.trigger1 and self.traffic_lights[1].num_carros + self.traffic_lights[3].num_carros == 0:
+                self.contador = 48
+                self.trigger1 = False
+            elif self.trigger2 and self.traffic_lights[0].num_carros + self.traffic_lights[2].num_carros == 0:
+                self.contador = 20
+                self.trigger2 = False
+        
+
+        if self.contador == 0:
             self.traffic_lights[0].next_state = 2
+            self.traffic_lights[1].next_state = 0
             self.traffic_lights[2].next_state = 2
-            self.contador = 0
+            self.traffic_lights[3].next_state = 0
+            self.yellows = False
+        if self.contador == 20:
+            self.traffic_lights[0].next_state = 1
+            self.traffic_lights[1].next_state = 0
+            self.traffic_lights[2].next_state = 1
+            self.traffic_lights[3].next_state = 0
+            self.trigger2 = False
+            self.yellows = True
+        if self.contador == 28:
+            self.traffic_lights[0].next_state = 0
+            self.traffic_lights[1].next_state = 2
+            self.traffic_lights[2].next_state = 0
+            self.traffic_lights[3].next_state = 2
+            self.yellows = False
+        if self.contador == 48:
+            self.traffic_lights[0].next_state = 0
+            self.traffic_lights[1].next_state = 1
+            self.traffic_lights[2].next_state = 0
+            self.traffic_lights[3].next_state = 1
+            self.trigger1 = False
+            self.yellows = True
+        if self.contador == 56:
+            self.contador = -1
+
 
     def advance(self):
         self.contador += 1
