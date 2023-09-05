@@ -67,7 +67,7 @@ public class AgentController : MonoBehaviour
             {
                 //Process the response
                 userData = SimpleJSON.JSON.Parse(www.downloadHandler.text);
-                //Debug.Log(userData["data"][0]["x"]);
+                //Debug.Log(userData);
                 //List<Vector3> newPositions = new List<Vector3>();
 
                 //get the number of objects in the data array
