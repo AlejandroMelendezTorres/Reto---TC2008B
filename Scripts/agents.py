@@ -16,25 +16,30 @@ import random
 def get_grid(model):
     grid = np.zeros((model.grid.width, model.grid.height))
     for cell in model.grid.coord_iter():
-      cell_content, (x, y) = cell
-      for obj in cell_content:
-        if isinstance(obj, Car):
-          grid[x][y] = 4
-        elif isinstance(obj, TrafficLight):
-          grid[x][y] = obj.state + 1
-        elif isinstance(obj, lightsController):
-            grid[x][y] = 5
+        cell_content, (x, y) = cell
+        for obj in cell_content:
+            if isinstance(obj, Car):
+                grid[x][y] = 4
+            elif isinstance(obj, TrafficLight):
+                grid[x][y] = obj.state + 1
+            elif isinstance(obj, lightsController):
+                grid[x][y] = 5
+        
+        if len(cell_content) == 0:
+            if (x >= 10 and x <= 13) or (y >= 10 and y <= 13):
+                grid[x][y] = 6
+
     return grid
 
 class Cross(Model):
     # Agregar un metodo para que obtenga la informacion de los agentes (solamante de los carros y los semaforos)
-    def __init__(self, width, height, tl):
+    def __init__(self, width, height, prob, smart):
         self.grid = MultiGrid(width, height, False)
         self.width = width
         self.height = height
         self.schedule = SimultaneousActivation(self)
         self.running = True
-        self.trafic_lights = tl
+        self.trafic_lights = [(12,10),(10,11),(11,13),(13,12)]
         self.lights = []
         self.contador = 0
         self.origin = [(12,0) ,(13,0) ,(0,10),(0,11) ,(10,23),(11,23),(23,12),(23,13)]
@@ -43,11 +48,13 @@ class Cross(Model):
         self.next_dir = [(1,0), (1,0), (0, -1), (0,-1), (-1, 0), (-1, 0), (0, 1), (0,1)]
         self.directions = [(0,1),(0,1),(1,0),(1,0),(0,-1),(0,-1),(-1,0),(-1,0)]
         self.lightIndex = [0,0,1,1,2,2,3,3]
+        self.density = prob
+        self.numTotalCaros = 0
 
         tempx = [(12, 13),(0, 9), (10, 11), (14, 23)]
         tempy = [(0,9), (10, 11), (14, 23), (12, 13)]
 
-        for test in tl:
+        for test in self.trafic_lights:
             lista = []
             for i in range(tempx[self.contador][0], tempx[self.contador][1]+1):
                 for j in range(tempy[self.contador][0], tempy[self.contador][1]+1):
@@ -59,17 +66,10 @@ class Cross(Model):
             self.schedule.add(t)
             self.lights.append(t)
         
-        controller = lightsController(self.contador, self, (23,0), self.lights)
+        controller = lightsController(self.contador, self, (23,0), self.lights, smart)
         self.contador += 1
         self.grid.place_agent(controller, (23,0))
         self.schedule.add(controller)
-
-        # Quitar esta parte de crear los carros ya que se crearan en el step
-        for i in range(len(self.origin)):
-            car = Car(self.contador, self, self.origin[i], self.destination[i], self.directions[i], self.lights[self.lightIndex[i]], self.next_dir[i], self.middle[i])
-            self.contador += 1
-            self.grid.place_agent(car, self.origin[i])
-            self.schedule.add(car)
 
         self.datacollector = DataCollector(
                 model_reporters={"Grid": get_grid},
@@ -77,14 +77,16 @@ class Cross(Model):
         )
             
     def step(self):
-        cell = self.grid.get_cell_list_contents(self.origin[2])
-        if len(cell) == 0:
-            # aqui se agregan los metodos para agregar los carros (varia entre 3 opciones, 1 - Trafico Ligero, 2 - Trafico Medio, 3 - Trafico Pesado)
-            ccar = Car(self.contador, self, self.origin[2], self.destination[2], self.directions[2], self.lights[self.lightIndex[2]], self.next_dir[2], self.middle[2])
-            self.contador += 1
-            self.grid.place_agent(ccar, self.origin[2])
-            self.schedule.add(ccar)
-        
+        for i in range(len(self.origin)):
+            cell = self.grid.get_cell_list_contents(self.origin[i])
+            if len(cell) == 0:
+                temp = random.randint(1, self.density[1])
+                if temp <= self.density[0] or self.density[0] == self.density[1]:
+                    car = Car(self.contador, self, self.origin[i], self.destination[i], self.directions[i], self.lights[self.lightIndex[i]], self.next_dir[i], self.middle[i])
+                    self.contador += 1
+                    self.grid.place_agent(car, self.origin[i])
+                    self.schedule.add(car)
+
         self.schedule.step()
         self.datacollector.collect(self)
 
@@ -122,25 +124,19 @@ class Car(Agent):
                         self.next_pos = next
                     
     def step(self):
-        if self.pos in self.traffic_light.area:
-            if self.traffic_light.state == 2:
-                self.move()
-            else:
-                self.move()
-        else:
-            self.move()
+        self.move()
 
     def advance(self):
         if self.pos == self.dest:
             self.model.grid.remove_agent(self)
             self.model.schedule.remove(self)
+            self.model.numTotalCaros += 1
         elif self.pos != self.next_pos:
             if self.next_pos == self.middle:
                 self.dir = self.next_dir
             self.model.grid.move_agent(self, self.next_pos)
             self.pos = self.next_pos
         
-            
 class TrafficLight(Agent):
     def __init__(self, unique_id, model, pos, state, area):
         # state: 0 = red, 1 = yellow, 2 = green
@@ -166,35 +162,99 @@ class TrafficLight(Agent):
 
 class lightsController(Agent):
     # NOT SMART CONTROLLER
-    def __init__(self, unique_id, model, pos, tl):
+    def __init__(self, unique_id, model, pos, tl, smart):
         super().__init__(unique_id, model)
         self.pos = pos
         self.traffic_lights = tl
         self.type = "lightsController"
         self.contador = 0
         self.state = None
+        self.smart = smart
 
-        self.traffic_lights[0].next_state = 2
-        self.traffic_lights[2].next_state = 2
+        if self.smart:
+            self.yellows = False
+            self.area1 = [] # Para los semaforos 0 y 2
+            self.trigger1 = False
+            self.area2 = [] # Para los semaforos 1 y 3
+            self.trigger2 = False
+            num_cariles = 3
+            for i in range(10-num_cariles, 10):
+                self.area1.append((12, i))
+                self.area1.append((13, i))
+
+            for i in range(14, 14+num_cariles):
+                self.area1.append((10, i))
+                self.area1.append((11, i))
+
+            for i in range(10-num_cariles, 10):
+                self.area2.append((i, 10))
+                self.area2.append((i, 11))
+            
+            for i in range(14, 14+num_cariles):
+                self.area2.append((i, 12))
+                self.area2.append((i, 13))
+
+        for light in self.traffic_lights:
+            light.next_state = 0
     
     def step(self):
-        if self.contador == 15:
-            self.traffic_lights[0].next_state = 1
-            self.traffic_lights[2].next_state = 1
-        if self.contador == 20:
-            self.traffic_lights[0].next_state = 0
-            self.traffic_lights[2].next_state = 0
-            self.traffic_lights[1].next_state = 2
-            self.traffic_lights[3].next_state = 2
-        if self.contador == 35:
-            self.traffic_lights[1].next_state = 1
-            self.traffic_lights[3].next_state = 1
-        if self.contador == 40:
-            self.traffic_lights[1].next_state = 0
-            self.traffic_lights[3].next_state = 0
+        if self.smart:
+            num_carros12 = 0
+            num_carros34 = 0
+            for pos in self.area1:
+                cellmates = self.model.grid.get_cell_list_contents(pos)
+                if len(cellmates) > 0:
+                    num_carros12 += 1
+            
+            for pos in self.area2:
+                cellmates = self.model.grid.get_cell_list_contents(pos)
+                if len(cellmates) > 0:
+                    num_carros34 += 1
+
+            if num_carros12 != 0 and num_carros34 ==0 and not self.trigger2 and not self.yellows:
+                self.contador = 0
+                self.trigger2 = True
+            elif num_carros12 == 0 and num_carros34 != 0 and not self.trigger1 and not self.yellows:
+                self.contador == 28
+                self.trigger1 = True
+            
+            if self.trigger1 and self.traffic_lights[1].num_carros + self.traffic_lights[3].num_carros == 0:
+                self.contador = 48
+                self.trigger1 = False
+            elif self.trigger2 and self.traffic_lights[0].num_carros + self.traffic_lights[2].num_carros == 0:
+                self.contador = 20
+                self.trigger2 = False
+        
+
+        if self.contador == 0:
             self.traffic_lights[0].next_state = 2
+            self.traffic_lights[1].next_state = 0
             self.traffic_lights[2].next_state = 2
-            self.contador = 0
+            self.traffic_lights[3].next_state = 0
+            self.yellows = False
+        if self.contador == 20:
+            self.traffic_lights[0].next_state = 1
+            self.traffic_lights[1].next_state = 0
+            self.traffic_lights[2].next_state = 1
+            self.traffic_lights[3].next_state = 0
+            self.trigger2 = False
+            self.yellows = True
+        if self.contador == 28:
+            self.traffic_lights[0].next_state = 0
+            self.traffic_lights[1].next_state = 2
+            self.traffic_lights[2].next_state = 0
+            self.traffic_lights[3].next_state = 2
+            self.yellows = False
+        if self.contador == 48:
+            self.traffic_lights[0].next_state = 0
+            self.traffic_lights[1].next_state = 1
+            self.traffic_lights[2].next_state = 0
+            self.traffic_lights[3].next_state = 1
+            self.trigger1 = False
+            self.yellows = True
+        if self.contador == 56:
+            self.contador = -1
+
 
     def advance(self):
         self.contador += 1
