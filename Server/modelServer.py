@@ -48,13 +48,15 @@ for i in range (1,201):
 
 def positionsToJSON(ps,step):
     posDICT = []
+    print(step)
     for p in ps[step]:
         pos = {
             "x" : p[0],
             "z" : p[1],
             "y" : p[2],
             "type" : p[3], # 0 = car, 1 = traffic light, 2 = controller
-            "color" : p[4] # 0 = red, 1 = yellow, 2 = green
+            "color" : p[4], # 0 = red, 1 = yellow, 2 = green
+            "ID" : p[5] # ID of the agent
 
         }
         posDICT.append(pos)
