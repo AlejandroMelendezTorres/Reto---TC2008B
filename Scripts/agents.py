@@ -11,26 +11,6 @@ import pandas as pd
 
 import random
 
-#from agents import Car, TrafficLight, lightsController
-
-def get_grid(model):
-    grid = np.zeros((model.grid.width, model.grid.height))
-    for cell in model.grid.coord_iter():
-        cell_content, (x, y) = cell
-        for obj in cell_content:
-            if isinstance(obj, Car):
-                grid[x][y] = 4
-            elif isinstance(obj, TrafficLight):
-                grid[x][y] = obj.state + 1
-            elif isinstance(obj, lightsController):
-                grid[x][y] = 5
-        
-        if len(cell_content) == 0:
-            if (x >= 10 and x <= 13) or (y >= 10 and y <= 13):
-                grid[x][y] = 6
-
-    return grid
-
 class Cross(Model):
     # Agregar un metodo para que obtenga la informacion de los agentes (solamante de los carros y los semaforos)
     def __init__(self, width, height, prob, smart):
@@ -72,8 +52,7 @@ class Cross(Model):
         self.schedule.add(controller)
 
         self.datacollector = DataCollector(
-                model_reporters={"Grid": get_grid},
-                agent_reporters={"Position": "pos","Type": "type","State": "state"} 
+                agent_reporters={"Position": "pos","Type": "type","State": "state", "Dir":"dir"} 
         )
             
     def step(self):
@@ -147,6 +126,7 @@ class TrafficLight(Agent):
         self.type = "TrafficLight"
         self.area = area
         self.num_carros = 0
+        self.dir = None
     
     def step(self):
         self.num_carros = 0
@@ -170,6 +150,7 @@ class lightsController(Agent):
         self.contador = 0
         self.state = None
         self.smart = smart
+        self.dir = None
 
         if self.smart:
             self.yellows = False
