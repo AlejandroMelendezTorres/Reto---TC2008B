@@ -9,11 +9,11 @@ from agents import Cross
 # Size of the board:
 widht = 24
 height = 24  
-tiempo = 10
+tiempo = 30
 smart = True
-max_cars = 500
+max_cars = 2000
 
-probabilidad = (10,100) 
+probabilidad = (20,100) 
 
 tl = [(12,10),(10,11),(11,13),(13,12)]
 
@@ -33,18 +33,19 @@ for i in range (1,maxstep):
     pos=AgentsDF.loc[i]["Position"].tolist()
     type=AgentsDF.loc[i]["Type"].tolist()
     state=AgentsDF.loc[i]["State"].tolist()
+    dir=AgentsDF.loc[i]["Dir"].tolist()
     ids=AgentsDF.loc[i].index.tolist()
     for j in range(len(pos)):
         x,y=pos[j]
         if type[j]=="Car":
-            tempPos.append((float(x),float(y),0.0,0,5,ids[j]))
+            tempPos.append((float(x),float(y),0.0,0,5,ids[j], dir[j]))
         elif type[j]=="TrafficLight":
             if state[j]==0:
-                tempPos.append((float(x),float(y),0.0,1,0,ids[j]))
+                tempPos.append((float(x),float(y),0.0,1,0,ids[j], (0,0)))
             elif state[j]==1:
-                tempPos.append((float(x),float(y),0.0,1,1,ids[j]))
+                tempPos.append((float(x),float(y),0.0,1,1,ids[j], (0,0)))
             elif state[j]==2:
-                tempPos.append((float(x),float(y),0.0,1,2,ids[j]))
+                tempPos.append((float(x),float(y),0.0,1,2,ids[j], (0,0)))
         #elif type[j]=="lightsController":
             #tempPos.append((float(x),float(y),0.0,2,5))
     positions.append(tempPos)
@@ -60,7 +61,10 @@ def positionsToJSON(ps,step):
             "y" : p[2],
             "type" : p[3], # 0 = car, 1 = traffic light, 2 = controller
             "color" : p[4], # 0 = red, 1 = yellow, 2 = green
-            "ID" : p[5] # ID of the agent
+            "ID" : p[5], # ID of the agent
+            "Dirx" : p[6][0], # Direction of the agent
+            "Diry" : p[6][1] # Direction of the agent
+        
 
         }
         posDICT.append(pos)
